@@ -102,7 +102,7 @@ contract RICKS is ERC20, ERC721Holder {
      /// @notice An event emitted with the price per token required for a buyout
     event BuyoutPricePerToken(address indexed buyer, uint price);
 
-
+    // daily inflation rate initialized at constructor
     constructor(string memory _name
                ,string memory _symbol
                ,address _token
