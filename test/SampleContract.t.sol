@@ -20,3 +20,4 @@ contract RICKSTest is Test {
         sampleContract.func2(1337);
     }
 }
+
