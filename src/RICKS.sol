@@ -67,30 +67,27 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
 
     mapping(address => uint) public buyoutBids;
 
-    /// @notice An event emitted when an auction is won
-    event BuyoutStart(address indexed buyer, uint price);
-
-    /// @notice An event emitted when an auction is won
-    event BuyoutWon(address indexed buyer, uint price);
-
-    /// @notice An event emitted when an auction is won
-    event BuyoutBid(address indexed buyer, uint price);
-
     /// ------------------------
     /// -------- EVENTS --------
     /// ------------------------
 
+    /// @notice An event emitted when a buyout has started
+    event BuyoutStart(address indexed buyer, uint price);
+
+    /// @notice An event emitted when a buyout is won
+    event BuyoutWon(address indexed buyer, uint price);
+
+    /// @notice An event emitted when a buyout has new bid
+    event BuyoutBid(address indexed buyer, uint price);
+
     /// @notice An event emitted when an auction is activated
     event Activate(address indexed initiatior);
 
-    /// @notice An event emitted when an auction starts
+    /// @notice An event emitted when a VRGDA auction starts
     event Start(address indexed buyer, uint price);
 
-    /// @notice An event emitted when an auction is won
+    /// @notice An event emitted when a VRGDA auction is won
     event Won(address indexed buyer, uint price);
-
-    /// @notice An event emitted when someone redeems all tokens for the NFT
-    event Redeem(address indexed redeemer);
 
     // VRGDA initialized at the constructor
     // auction state empty
