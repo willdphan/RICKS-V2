@@ -189,6 +189,9 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
         // increase the number of auctions/RICKs sold
         totalSold++;
 
+        // set auction state to inactive
+        auctionState = AuctionState.inactive;
+
         // transfer ERC721 token to the winner
         ERC721(token).safeTransferFrom(address(this), winner, totalSold);
 
