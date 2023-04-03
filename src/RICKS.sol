@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
-import "lib/openzeppelin-contracts/contracts/token/ERC721/utils/ERC721Holder.sol";
+import "openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
+import "openzeppelin-contracts/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {LinearVRGDA} from "VRGDAs/LinearVRGDA.sol";
 import "src/interfaces/IWETH.sol";
+import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
+import {CheckpointEscrow} from 'src/CheckpointEscrow.sol';
+import {toDaysWadUnsafe} from "solmate/utils/SignedWadMath.sol";
+
+
 
 /// @notice RICKS -- https://www.paradigm.xyz/2021/10/ricks/. Auction design based off fractional TokenVault.sol.
 contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
@@ -12,12 +17,9 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
     /// ---------------------------
     /// -------- Addresses --------
     /// ---------------------------
-    
-    /// @notice weth address
-    address public constant weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
-    /// @notice staking pool address
-    address public stakingPool;
+    /// @notice checkpoint address
+    address public checkpointEscrow;
 
     /// -----------------------------------
     /// ------- ERC721 INFORMATION --------
@@ -35,6 +37,8 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
 
     /// @notice the unix timestamp start time of auction
     uint256 public auctionStartTime;
+
+    uint256 public auctionEndtime;
 
     /// @notice the current price of the winning Bid during auction
     uint256 public currentPrice;
@@ -104,11 +108,11 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
                // The ID of the ERC1155 token being fractionalized.
                ,uint256 _id
                 // target price
-               ,uint256 _targetPrice
+               ,int256 _targetPrice
                 // percent price decays per unit of time with no sales, scaled by 1e18
-               ,uint256 _priceDecay
+               ,int256 _priceDecay
                 // per unit of time, scaled by 1e18
-               ,uint256 _perUnitTime
+               ,int256 _perUnitTime
                ) ERC721(_name, _symbol) 
     // set VRGDA parameters
      LinearVRGDA(
@@ -121,8 +125,8 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
         // set empty auction state - auction not started
         auctionState = AuctionState.empty;
 
-        // initialize staking pool
-        stakingPool = address(new StakingPool(address(this), weth));
+        // initialize checkpoint contract
+        checkpointEscrow = address(new CheckpointEscrow(address(this)));
     }
 
     // used to activate the RICKS platform, transfer NFT to the contract
@@ -134,6 +138,9 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
 
         // transfers ERC721 to this contract
         ERC721(token).transferFrom(msg.sender, address(this), id);
+
+        // require that the contract holds the NFT
+        require(ERC721(token).ownerOf(id) == address(this), "The contract does not hold the NFT");
 
         // changes the auctionState to inactive, 
         // indicating that the contract is now ready for the start of the auction.
@@ -158,7 +165,13 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
         auctionStartTime = block.timestamp;
 
         // calculate the starting price based on the VRGDA pricing logic
-        currentPrice = getVRGDAPrice(block.timestamp - auctionStartTime, totalSold);
+        currentPrice = getVRGDAPrice(
+            toDaysWadUnsafe(
+                block.timestamp - auctionStartTime
+            ), 
+            // current number sold
+            totalSold
+        );
 
         // update auction state to active
         auctionState = AuctionState.active;
@@ -178,32 +191,31 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
         // Ensure auction is active
         require(auctionState == AuctionState.active, "Auction not active");
 
+
         // Calculate the price of the tokens being bought with time left
         // and with the number of auctions that have taken place/number of RICKs minted
-        uint256 price = getVRGDAPrice(block.timestamp - auctionEndTime, totalSold);
+        uint256 price = getVRGDAPrice(
+            toDaysWadUnsafe(
+                block.timestamp - auctionStartTime
+            ), 
+            // increase number of Ricks sold
+            totalSold++
+        );
 
         // Ensure buyer sends enough ETH to purchase a RICK
         require(msg.value >= price, "Insufficient funds");
 
-        // Update the highest bidder
+        // Update the winner of the auction
         winner = payable(msg.sender);
-
-        // increase the number of auctions/RICKs sold
-        totalSold++;
 
         // set auction state to inactive
         auctionState = AuctionState.inactive;
 
         // transfer ERC721 token to the buyer
-        ERC721(token).safeTransferFrom(address(this), winner, totalSold);
+        ERC721(token).safeTransferFrom(address(this), winner, totalSold, "");
 
-        // Update the price for the next sale of RICKs
-        VRGDA.updateTargetPrice(currentPrice);
-
-        // deposit ETH into the staking pool
-        IWETH(weth).deposit{value: currentPrice}();
-        IWETH(weth).approve(stakingPool, currentPrice);
-        StakingPool(stakingPool).depositReward(currentPrice);
+        // deposit msg.value of NFT into the checkpoint contract
+        SafeTransferLib.safeTransferETH(checkpointEscrow, msg.value);
 
         // Emit a Won event to signal a successful purchase
         emit Won(winner, price);
@@ -215,10 +227,10 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
 
     // user can trigger a buyout of the NFT/english auction
     // require user own 95% of total RICKs - can be changed
-    function startBuyout() external {
+    function buyoutStart() external {
         require(auctionState == AuctionState.inactive, "can't buy out during auction");
         // requirements can be hardcoded and changed
-        require(balanceOf(msg.sender) * 100 / totalSold >= 0.95, "need 95% of total RICKS to buyout");
+        require(balanceOf(msg.sender) * 100 / totalSold >= 95, "need 95% of total RICKS to buyout");
 
         // set VRGDA auction state
         auctionState = AuctionState.finalized;
@@ -229,11 +241,16 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
         // reserve price is set at the last price of the VRGDA auction
         buyoutPrice = currentPrice;
 
+         // if msg.sender does not = 0, then emit buyout start event
+        if (msg.sender != address(0)) {
+         emit BuyoutStart(msg.sender, buyoutPrice);
+        }
+
         // set auction end time to 7 days from now - can be changed
         buyoutEndTime = block.timestamp + 7 days;
     }
 
-    function bidBuyout () external payable {
+    function buyoutBid () external payable {
         require(block.timestamp < buyoutEndTime, "buyout has ended");
         require(msg.value > buyoutPrice, "bid must be higher than current bid");
 
@@ -242,29 +259,34 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
         // update buyout bidder
         buyoutBidder = msg.sender;
 
-        // emit event to signal a new bid
-        emit BuyoutBid(msg.sender, msg.value);
-
         if (msg.sender != address(0)) {
             buyoutBids[buyoutBidder] += msg.value;
         }
+
+        // emit event to signal a new bid
+        emit BuyoutBid(msg.sender, msg.value);
     }
 
     // user can end the buyout once time has expired
-    function endBuyout () external {
+    function buyoutEnd () external {
         // require buyout to have ended
         require(block.timestamp >= buyoutEndTime, "buyout is still active");
         require(auctionState == AuctionState.finalized, "buyout not started");
+        // require contract holds the NFT to be fractionalized
+        require(ERC721(token).ownerOf(id) == address(this), "The contract does not hold the NFT being sold");
 
         // set different auction state
         auctionState = AuctionState.empty;
 
         // transfer NFT to the highest bidder if the address is not 0
         if (buyoutBidder != address(0)) {
-            IERC721.safeTransferFrom(address(this), buyoutBidder, totalSold);
+            ERC721.safeTransferFrom(address(this), buyoutBidder, totalSold);
 
-            // emit event to signal the end of the buyout
-            emit Won(msg.sender, buyoutPrice);
+        // deposit msg.value of NFT into the checkpoint contract
+        SafeTransferLib.safeTransferETH(checkpointEscrow, msg.value);
+
+        // emit event to signal the end of the buyout
+        emit Won(msg.sender, buyoutPrice);
         }
     }
 }
