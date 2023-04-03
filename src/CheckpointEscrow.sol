@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {ERC721Checkpointable, ERC721} from "src/CheckpointedERC721.sol";
+import {CheckpointedERC721, ERC721} from "src/CheckpointedERC721.sol";
 
 contract CheckpointEscrow {
     address immutable token;
@@ -21,11 +21,11 @@ contract CheckpointEscrow {
         view
         returns (uint256)
     {
-        uint256 balance = ERC721Checkpointable(token).getPastBalance(
+        uint256 balance = CheckpointedERC721(token).getPastBalance(
             payee,
             blockNumber
         );
-        uint256 supply = ERC721Checkpointable(token).getPastTotalSupply(
+        uint256 supply = CheckpointedERC721(token).getPastTotalSupply(
             blockNumber
         );
         uint256 escrowedAmount = _deposits[blockNumber];

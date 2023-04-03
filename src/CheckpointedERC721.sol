@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {ERC721, ERC721TokenReceiver} from "solmate/tokens/ERC721.sol";
 import {SafeCastLib} from "solmate/utils/SafeCastLib.sol";
 
-abstract contract ERC721Checkpointable is ERC721 {
+abstract contract CheckpointedERC721 is ERC721 {
     using SafeCastLib for uint256;
 
     struct Checkpoint {
