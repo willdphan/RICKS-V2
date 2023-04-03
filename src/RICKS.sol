@@ -5,7 +5,6 @@ import "lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {LinearVRGDA} from "VRGDAs/LinearVRGDA.sol";
 import "src/interfaces/IWETH.sol";
-import "src/RICKSStakingPool.sol";
 
 /// @notice RICKS -- https://www.paradigm.xyz/2021/10/ricks/. Auction design based off fractional TokenVault.sol.
 contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
@@ -21,7 +20,7 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
     address public stakingPool;
 
     /// -----------------------------------
-    /// -------- ERC721 INFORMATION --------
+    /// ------- ERC721 INFORMATION --------
     /// -----------------------------------
 
     /// @notice the ERC721 token address being fractionalized
