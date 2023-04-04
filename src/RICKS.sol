@@ -222,7 +222,7 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
     }
 
     /// -------------------------------------
-    /// -------- BUYOUT FUNCTIONS ------------
+    /// -------- BUYOUT FUNCTIONS -----------
     /// -------------------------------------
 
     // user can trigger a buyout of the NFT/english auction
@@ -250,6 +250,7 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
         buyoutEndTime = block.timestamp + 7 days;
     }
 
+    // bid on the buyout of the NFT/english auction
     function buyoutBid () external payable {
         require(block.timestamp < buyoutEndTime, "buyout has ended");
         require(msg.value > buyoutPrice, "bid must be higher than current bid");
@@ -260,11 +261,20 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
         buyoutBidder = msg.sender;
 
         if (msg.sender != address(0)) {
+            // track the amount of ETH the bidder has put in
             buyoutBids[buyoutBidder] += msg.value;
         }
 
         // emit event to signal a new bid
         emit BuyoutBid(msg.sender, msg.value);
+    }
+
+     function withdraw() external {
+        uint bidAmount =  buyoutBids[msg.sender];
+        // reset bid to 0 for the user
+        buyoutBids[msg.sender] = 0;
+        // refund the user's ETH
+        payable(msg.sender).transfer(bidAmount);
     }
 
     // user can end the buyout once time has expired
@@ -282,11 +292,11 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
         if (buyoutBidder != address(0)) {
             ERC721.safeTransferFrom(address(this), buyoutBidder, totalSold);
 
-        // deposit msg.value of NFT into the checkpoint contract
-        SafeTransferLib.safeTransferETH(checkpointEscrow, msg.value);
+            // deposit msg.value of NFT into the checkpoint contract
+            SafeTransferLib.safeTransferETH(checkpointEscrow, buyoutPrice);
 
-        // emit event to signal the end of the buyout
-        emit Won(msg.sender, buyoutPrice);
+            // emit event to signal the end of the buyout
+            emit Won(msg.sender, buyoutPrice);
         }
     }
 }
