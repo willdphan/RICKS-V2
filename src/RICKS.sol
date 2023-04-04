@@ -274,7 +274,7 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
         }
     }
 
-       function withdraw() external {
+    function withdraw() external {
         uint bidAmount =  buyoutBids[msg.sender];
         // reset bid to 0 for the user
         buyoutBids[msg.sender] = 0;
