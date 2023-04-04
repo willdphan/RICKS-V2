@@ -225,7 +225,7 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
         // reserve price is set at the last price of the VRGDA auction
         buyoutPrice = currentPrice;
 
-                // set auction end time to 7 days from now - can be changed
+        // set auction end time to 7 days from now - can be changed
         buyoutEndTime = block.timestamp + 7 days;
 
          // if msg.sender does not = 0, then emit buyout start event
