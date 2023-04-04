@@ -9,9 +9,6 @@ import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {CheckpointEscrow} from 'src/CheckpointEscrow.sol';
 import {toDaysWadUnsafe} from "solmate/utils/SignedWadMath.sol";
 
-
-
-/// @notice RICKS -- https://www.paradigm.xyz/2021/10/ricks/. Auction design based off fractional TokenVault.sol.
 contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
 
     /// ---------------------------
@@ -96,15 +93,13 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
 
 
     // VRGDA initialized at the constructor
+    // RICKS token 
     // auction state empty
-    // supply of RICKS initialized
     // staking pool initialized
-    constructor(
-                // uri of the token
-                string memory _name,
-                string memory _symbol,
+    constructor(string memory _name
+               ,string memory _symbol
                // address of ERC1155 to be fractionalized
-               address _token
+               ,address _token
                // The ID of the ERC1155 token being fractionalized.
                ,uint256 _id
                 // target price
@@ -113,7 +108,7 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
                ,int256 _priceDecay
                 // per unit of time, scaled by 1e18
                ,int256 _perUnitTime
-               ) ERC721(_name, _symbol) 
+     ) ERC721(_name, _symbol) 
     // set VRGDA parameters
      LinearVRGDA(
         // params could be hardcoded
@@ -190,7 +185,6 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
     function buyRICK() external payable {
         // Ensure auction is active
         require(auctionState == AuctionState.active, "Auction not active");
-
 
         // Calculate the price of the tokens being bought with time left
         // and with the number of auctions that have taken place/number of RICKs minted
@@ -274,7 +268,7 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
         // reset bid to 0 for the user
         buyoutBids[msg.sender] = 0;
         // refund the user's ETH
-        payable(msg.sender).transfer(bidAmount);
+        SafeTransferLib.safeTransferETH(msg.sender, bidAmount);
     }
 
     // user can end the buyout once time has expired
