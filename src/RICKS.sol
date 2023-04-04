@@ -175,9 +175,8 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
         emit Start(msg.sender, currentPrice);
     }
 
-    // INCLUDE TRANSFERS
     // allows users to buy RICKS with ETH
-    // gets price to buy RICKS with VRGDA pricing logic
+    // gets price to buy (mint) RICKS with VRGDA pricing logic
     // set inactive auction state, mint 1 RICK, transfer ERC721 token to winner
     function buyRICK() external payable {
         // Ensure auction is active
@@ -214,7 +213,8 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
     function buyoutStart() external {
         require(auctionState == AuctionState.inactive, "can't buy out during auction");
         // requirements can be hardcoded and changed
-        require((balanceOf(msg.sender) >= totalSold / 100), "need 95% of total RICKS to start buyout");
+        require((balanceOf(msg.sender) >= (95 * totalSold) / 100), "need 95% of total RICKS to start buyout");
+
 
         // set VRGDA auction state
         auctionState = AuctionState.finalized;
@@ -225,13 +225,13 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
         // reserve price is set at the last price of the VRGDA auction
         buyoutPrice = currentPrice;
 
+                // set auction end time to 7 days from now - can be changed
+        buyoutEndTime = block.timestamp + 7 days;
+
          // if msg.sender does not = 0, then emit buyout start event
         if (msg.sender != address(0)) {
          emit BuyoutStart(msg.sender, buyoutPrice);
         }
-
-        // set auction end time to 7 days from now - can be changed
-        buyoutEndTime = block.timestamp + 7 days;
     }
 
     // bid on the buyout of the NFT/english auction
