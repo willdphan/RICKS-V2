@@ -253,14 +253,6 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
         emit BuyoutBid(msg.sender, msg.value);
     }
 
-     function withdraw() external {
-        uint bidAmount =  buyoutBids[msg.sender];
-        // reset bid to 0 for the user
-        buyoutBids[msg.sender] = 0;
-        // refund the user's ETH
-        SafeTransferLib.safeTransferETH(msg.sender, bidAmount);
-    }
-
     // user can end the buyout once time has expired
     function buyoutEnd () external {
         // require buyout to have ended
@@ -281,5 +273,14 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
             emit Won(buyoutBidder, buyoutPrice);
         }
     }
+
+       function withdraw() external {
+        uint bidAmount =  buyoutBids[msg.sender];
+        // reset bid to 0 for the user
+        buyoutBids[msg.sender] = 0;
+        // refund the user's ETH
+        SafeTransferLib.safeTransferETH(msg.sender, bidAmount);
+    }
+
 }
 

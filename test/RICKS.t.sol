@@ -150,9 +150,6 @@ contract RICKSTest is Test{
         vm.stopPrank();
 
         vm.startPrank(alice);
-        uint256 price = ricks.getVRGDAPrice(toDaysWadUnsafe(
-                block.timestamp - ricks.auctionStartTime()
-            ), ricks.totalSold() );
 
     
         ricks.buyRICK{value: ricks.currentPrice() + .01 ether}();
@@ -162,7 +159,7 @@ contract RICKSTest is Test{
         vm.stopPrank();
         // bob bids
         vm.startPrank(bob);
-        ricks.buyoutBid{value:price + .01 ether}(); 
+        ricks.buyoutBid{value:ricks.buyoutPrice() + .01 ether}(); 
         // bob is currently the buyout bidder
         vm.stopPrank();
 
@@ -184,11 +181,7 @@ contract RICKSTest is Test{
         vm.stopPrank();
 
         vm.startPrank(alice);
-        uint256 price = ricks.getVRGDAPrice(toDaysWadUnsafe(
-                block.timestamp - ricks.auctionStartTime()
-            ), ricks.totalSold() );
 
-    
         ricks.buyRICK{value: ricks.currentPrice() + .01 ether}();
 
         ricks.buyoutStart();
@@ -196,7 +189,7 @@ contract RICKSTest is Test{
         vm.stopPrank();
         // bob bids
         vm.startPrank(bob);
-        ricks.buyoutBid{value:price + .01 ether}(); 
+        ricks.buyoutBid{value:ricks.buyoutPrice() + .01 ether}(); 
         // bob is currently the buyout bidder
         vm.stopPrank();
 
@@ -215,6 +208,44 @@ contract RICKSTest is Test{
         assertEq(nft.balanceOf(address(alice)), 1);
         // make sure ricks have been emptied
         assertEq(nft.balanceOf(address(ricks)), 0);
+        assertEq(ricks.checkpointEscrow().balance, 2086227653312133016);
+    }
+
+    function testWithdraw() public {
+        vm.startPrank(bob);
+        nft.mint(bob, 1);
+        nft.approve(address(ricks), 1);
+
+        ricks.activate();
+        ricks.startVRGDA();
+        vm.stopPrank();
+
+        vm.startPrank(alice);
+    
+        ricks.buyRICK{value: ricks.currentPrice() + .01 ether}();
+
+        ricks.buyoutStart();
+
+        vm.stopPrank();
+        // bob bids
+        vm.startPrank(bob);
+        ricks.buyoutBid{value:ricks.buyoutPrice() + .01 ether}(); 
+        // bob is currently the buyout bidder
+        vm.stopPrank();
+
+        vm.startPrank(alice);
+        ricks.buyoutBid{value:ricks.buyoutPrice() + .01 ether}(); 
+       
+        vm.warp(ricks.buyoutEndTime() + 1);
+    
+        // alice ends the buyout
+        ricks.buyoutEnd();
+        vm.stopPrank();
+
+        // bob withdraws
+        vm.startPrank(bob);
+        assertEq(ricks.buyoutBids(bob), 1038113826656066508);
+        ricks.withdraw();
         assertEq(ricks.checkpointEscrow().balance, 2086227653312133016);
     }
 }
