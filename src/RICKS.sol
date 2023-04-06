@@ -209,11 +209,11 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
     /// -------------------------------------
 
     // user can trigger a buyout of the NFT/english auction
-    // require user own 95% of total RICKs - can be changed
+    // require user own 50% of total RICKs - can be changed
     function buyoutStart() external {
         require(auctionState == AuctionState.inactive, "can't buy out during auction");
         // requirements can be hardcoded and changed
-        require((balanceOf(msg.sender) >= (95 * totalSold) / 100), "need 95% of total RICKS to start buyout");
+        require((balanceOf(msg.sender) >= (50 * totalSold) / 100), "need 95% of total RICKS to start buyout");
 
 
         // set VRGDA auction state
