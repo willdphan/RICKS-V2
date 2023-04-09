@@ -8,7 +8,7 @@ import {toDaysWadUnsafe} from "solmate/utils/SignedWadMath.sol";
 import {MyToken} from "test/utils/mocks/MockERC721.sol";
 import {CheckpointEscrow} from "src/CheckpointEscrow.sol";
 
-contract RICKSTest is Test{
+contract RICKSTest is Test {
     // mock NFT
     MyToken nft;
     RICKS ricks;
@@ -18,7 +18,7 @@ contract RICKSTest is Test{
     address alice = vm.addr(222);
     address bob = vm.addr(333);
 
- receive() external payable {}
+    receive() external payable {}
 
     function setUp() public {
         nft = new MyToken("NFT", "NFT");
@@ -32,36 +32,37 @@ contract RICKSTest is Test{
     }
 
     function testActivate() public {
-        assertEq(uint(ricks.auctionState()), uint(RICKS.AuctionState.empty));
+        assertEq(uint256(ricks.auctionState()), uint256(RICKS.AuctionState.empty));
         vm.startPrank(bob);
         nft.mint(bob, 1);
         nft.approve(address(ricks), 1);
 
         ricks.activate();
-        assertEq(uint(ricks.auctionState()), uint(RICKS.AuctionState.inactive));
+        assertEq(uint256(ricks.auctionState()), uint256(RICKS.AuctionState.inactive));
         assertEq(nft.balanceOf(address(ricks)), 1);
     }
 
     function teststartVRGDA() public {
-        assertEq(uint(ricks.auctionState()), uint(RICKS.AuctionState.empty));
+        assertEq(uint256(ricks.auctionState()), uint256(RICKS.AuctionState.empty));
         vm.startPrank(bob);
         nft.mint(bob, 1);
         nft.approve(address(ricks), 1);
 
         ricks.activate();
-        assertEq(uint(ricks.auctionState()), uint(RICKS.AuctionState.inactive));
-        assertEq(uint(ricks.auctionStartTime()), 0);
+        assertEq(uint256(ricks.auctionState()), uint256(RICKS.AuctionState.inactive));
+        assertEq(uint256(ricks.auctionStartTime()), 0);
 
         ricks.startVRGDA();
-        assertEq(uint(ricks.auctionStartTime()), block.timestamp);
-        assertEq(ricks.currentPrice(), ricks.getVRGDAPrice(
-            toDaysWadUnsafe(
-                block.timestamp - ricks.auctionStartTime()
-            ), 
-            // current number sold
-            ricks.totalSold()
-        ));
-        assertEq(uint(ricks.auctionState()), uint(RICKS.AuctionState.active));
+        assertEq(uint256(ricks.auctionStartTime()), block.timestamp);
+        assertEq(
+            ricks.currentPrice(),
+            ricks.getVRGDAPrice(
+                toDaysWadUnsafe(block.timestamp - ricks.auctionStartTime()),
+                // current number sold
+                ricks.totalSold()
+            )
+        );
+        assertEq(uint256(ricks.auctionState()), uint256(RICKS.AuctionState.active));
     }
 
     function testbuyRICK() public {
@@ -74,22 +75,21 @@ contract RICKSTest is Test{
         vm.stopPrank();
 
         vm.startPrank(alice);
-        uint256 price = ricks.getVRGDAPrice(toDaysWadUnsafe(
-                block.timestamp - ricks.auctionStartTime()
-            ), ricks.totalSold() );
+        uint256 price =
+            ricks.getVRGDAPrice(toDaysWadUnsafe(block.timestamp - ricks.auctionStartTime()), ricks.totalSold());
 
-        assertEq(uint(ricks.auctionState()), uint(RICKS.AuctionState.active));
-        ricks.buyRICK{value: ricks.currentPrice() + .01 ether}();
+        assertEq(uint256(ricks.auctionState()), uint256(RICKS.AuctionState.active));
+        ricks.buyRICK{value: ricks.currentPrice() + 0.01 ether}();
         assertEq(ricks.winner(), address(alice));
-        assertEq(uint(ricks.auctionState()), uint(RICKS.AuctionState.inactive));
+        assertEq(uint256(ricks.auctionState()), uint256(RICKS.AuctionState.inactive));
         // check if ricks have been minted and transferred to alice
         assertEq(ricks.balanceOf(address(ricks)), 0);
         assertEq(ricks.balanceOf(address(alice)), 1);
         // check if funds have been sent to escrow
-        assertEq(ricks.checkpointEscrow().balance, price + .01 ether);
-    }     
+        assertEq(ricks.checkpointEscrow().balance, price + 0.01 ether);
+    }
 
-    function testBuyoutStart () public {
+    function testBuyoutStart() public {
         vm.startPrank(bob);
         nft.mint(bob, 1);
         nft.approve(address(ricks), 1);
@@ -99,15 +99,15 @@ contract RICKSTest is Test{
         vm.stopPrank();
 
         vm.startPrank(alice);
-    
-        ricks.buyRICK{value: ricks.currentPrice() + .01 ether}();
+
+        ricks.buyRICK{value: ricks.currentPrice() + 0.01 ether}();
 
         assertEq(ricks.totalSold(), 1);
         assertEq(ricks.balanceOf(address(alice)), 1);
         ricks.buyoutStart();
 
-        assertEq(uint(ricks.auctionState()), uint(RICKS.AuctionState.finalized));
-        assertEq(uint(ricks.buyoutStartTime()), block.timestamp);
+        assertEq(uint256(ricks.auctionState()), uint256(RICKS.AuctionState.finalized));
+        assertEq(uint256(ricks.buyoutStartTime()), block.timestamp);
         assertEq(ricks.buyoutPrice(), ricks.currentPrice());
         assertEq(ricks.buyoutEndTime(), block.timestamp + 7 days);
     }
@@ -122,12 +122,10 @@ contract RICKSTest is Test{
         vm.stopPrank();
 
         vm.startPrank(alice);
-        uint256 price = ricks.getVRGDAPrice(toDaysWadUnsafe(
-                block.timestamp - ricks.auctionStartTime()
-            ), ricks.totalSold() );
+        uint256 price =
+            ricks.getVRGDAPrice(toDaysWadUnsafe(block.timestamp - ricks.auctionStartTime()), ricks.totalSold());
 
-    
-        ricks.buyRICK{value: ricks.currentPrice() + .01 ether}();
+        ricks.buyRICK{value: ricks.currentPrice() + 0.01 ether}();
 
         ricks.buyoutStart();
 
@@ -135,12 +133,12 @@ contract RICKSTest is Test{
         // bob bids
         vm.startPrank(bob);
         assertEq(ricks.buyoutPrice(), ricks.currentPrice());
-        ricks.buyoutBid{value:price + .01 ether}(); 
+        ricks.buyoutBid{value: price + 0.01 ether}();
         // bob is currently the buyout bidder
         assertEq(ricks.buyoutBidder(), bob);
     }
 
-    function testBuyoutBidHigher () public {
+    function testBuyoutBidHigher() public {
         vm.startPrank(bob);
         nft.mint(bob, 1);
         nft.approve(address(ricks), 1);
@@ -151,22 +149,21 @@ contract RICKSTest is Test{
 
         vm.startPrank(alice);
 
-    
-        ricks.buyRICK{value: ricks.currentPrice() + .01 ether}();
+        ricks.buyRICK{value: ricks.currentPrice() + 0.01 ether}();
 
         ricks.buyoutStart();
 
         vm.stopPrank();
         // bob bids
         vm.startPrank(bob);
-        ricks.buyoutBid{value:ricks.buyoutPrice() + .01 ether}(); 
+        ricks.buyoutBid{value: ricks.buyoutPrice() + 0.01 ether}();
         // bob is currently the buyout bidder
         vm.stopPrank();
 
         // alice bids
         vm.startPrank(alice);
         assertEq(ricks.buyoutPrice(), ricks.buyoutPrice());
-        ricks.buyoutBid{value:ricks.buyoutPrice() + .01 ether}(); 
+        ricks.buyoutBid{value: ricks.buyoutPrice() + 0.01 ether}();
         // alice is currently the buyout bidder
         assertEq(ricks.buyoutBidder(), alice);
     }
@@ -182,28 +179,28 @@ contract RICKSTest is Test{
 
         vm.startPrank(alice);
 
-        ricks.buyRICK{value: ricks.currentPrice() + .01 ether}();
+        ricks.buyRICK{value: ricks.currentPrice() + 0.01 ether}();
 
         ricks.buyoutStart();
 
         vm.stopPrank();
         // bob bids
         vm.startPrank(bob);
-        ricks.buyoutBid{value:ricks.buyoutPrice() + .01 ether}(); 
+        ricks.buyoutBid{value: ricks.buyoutPrice() + 0.01 ether}();
         // bob is currently the buyout bidder
         vm.stopPrank();
 
         // alice bids
         vm.startPrank(alice);
-        ricks.buyoutBid{value:ricks.buyoutPrice() + .01 ether}(); 
+        ricks.buyoutBid{value: ricks.buyoutPrice() + 0.01 ether}();
         // alice is currently the buyout bidder
         assertEq(ricks.buyoutBidder(), alice);
         vm.warp(ricks.buyoutEndTime() + 1);
-        assertEq(uint(ricks.auctionState()), uint(RICKS.AuctionState.finalized));
+        assertEq(uint256(ricks.auctionState()), uint256(RICKS.AuctionState.finalized));
 
         // alice ends the buyout
         ricks.buyoutEnd();
-        assertEq(uint(ricks.auctionState()), uint(RICKS.AuctionState.empty));
+        assertEq(uint256(ricks.auctionState()), uint256(RICKS.AuctionState.empty));
         // make sure alice gets 100% of the original NFT
         assertEq(nft.balanceOf(address(alice)), 1);
         // make sure ricks have been emptied
@@ -221,23 +218,23 @@ contract RICKSTest is Test{
         vm.stopPrank();
 
         vm.startPrank(alice);
-    
-        ricks.buyRICK{value: ricks.currentPrice() + .01 ether}();
+
+        ricks.buyRICK{value: ricks.currentPrice() + 0.01 ether}();
 
         ricks.buyoutStart();
 
         vm.stopPrank();
         // bob bids
         vm.startPrank(bob);
-        ricks.buyoutBid{value:ricks.buyoutPrice() + .01 ether}(); 
+        ricks.buyoutBid{value: ricks.buyoutPrice() + 0.01 ether}();
         // bob is currently the buyout bidder
         vm.stopPrank();
 
         vm.startPrank(alice);
-        ricks.buyoutBid{value:ricks.buyoutPrice() + .01 ether}(); 
-       
+        ricks.buyoutBid{value: ricks.buyoutPrice() + 0.01 ether}();
+
         vm.warp(ricks.buyoutEndTime() + 1);
-    
+
         // alice ends the buyout
         ricks.buyoutEnd();
         vm.stopPrank();

@@ -9,5 +9,4 @@ contract MyToken is ERC721 {
     function mint(address to, uint256 tokenId) public {
         _mint(to, tokenId);
     }
-
 }

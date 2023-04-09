@@ -24,74 +24,39 @@ abstract contract CheckpointedERC721 is ERC721 {
     /// account -> checkpoint# -> checkpoint(fromBlock,#votes)
     mapping(address => mapping(uint32 => CheckpointsSlot)) public checkpoints;
 
-    constructor(string memory _name, string memory _symbol)
-        ERC721(_name, _symbol)
-    {}
+    constructor(string memory _name, string memory _symbol) ERC721(_name, _symbol) {}
 
-    function balanceOf(address owner)
-        public
-        view
-        virtual
-        override
-        returns (uint256)
-    {
+    function balanceOf(address owner) public view virtual override returns (uint256) {
         require(owner != address(0), "ZERO_ADDRESS");
         return getCurrentBalance(owner);
     }
 
-    function transferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) public virtual override {
+    function transferFrom(address from, address to, uint256 id) public virtual override {
         _transferFrom(from, to, id);
     }
 
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) public virtual override {
+    function safeTransferFrom(address from, address to, uint256 id) public virtual override {
         _transferFrom(from, to, id);
         require(
-            to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(
-                    msg.sender,
-                    from,
-                    id,
-                    ""
-                ) ==
-                ERC721TokenReceiver.onERC721Received.selector,
+            to.code.length == 0
+                || ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "")
+                    == ERC721TokenReceiver.onERC721Received.selector,
             "UNSAFE_RECIPIENT"
         );
     }
 
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id,
-        bytes calldata data
-    ) public virtual override {
+    function safeTransferFrom(address from, address to, uint256 id, bytes calldata data) public virtual override {
         _transferFrom(from, to, id);
 
         require(
-            to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(
-                    msg.sender,
-                    from,
-                    id,
-                    data
-                ) ==
-                ERC721TokenReceiver.onERC721Received.selector,
+            to.code.length == 0
+                || ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data)
+                    == ERC721TokenReceiver.onERC721Received.selector,
             "UNSAFE_RECIPIENT"
         );
     }
 
-    function batchTransferFrom(
-        address from,
-        address to,
-        uint256[] memory ids
-    ) public virtual {
+    function batchTransferFrom(address from, address to, uint256[] memory ids) public virtual {
         require(to != address(0), "INVALID_RECIPIENT");
         uint256 id;
         uint96 amount = ids.length.safeCastTo96();
@@ -100,9 +65,7 @@ abstract contract CheckpointedERC721 is ERC721 {
             id = ids[i];
             require(from == _ownerOf[id], "WRONG_FROM");
             require(
-                msg.sender == from ||
-                    isApprovedForAll[from][msg.sender] ||
-                    msg.sender == getApproved[id],
+                msg.sender == from || isApprovedForAll[from][msg.sender] || msg.sender == getApproved[id],
                 "NOT_AUTHORIZED"
             );
 
@@ -142,9 +105,7 @@ abstract contract CheckpointedERC721 is ERC721 {
             owner = _ownerOf[id];
             require(owner != address(0), "NOT_MINTED");
             require(
-                msg.sender == owner ||
-                    isApprovedForAll[owner][msg.sender] ||
-                    msg.sender == getApproved[id],
+                msg.sender == owner || isApprovedForAll[owner][msg.sender] || msg.sender == getApproved[id],
                 "NOT_AUTHORIZED"
             );
 
@@ -166,22 +127,13 @@ abstract contract CheckpointedERC721 is ERC721 {
         emit Transfer(address(0), to, id);
     }
 
-    function _safeMint(
-        address to,
-        uint256 id,
-        bytes memory data
-    ) internal virtual override {
+    function _safeMint(address to, uint256 id, bytes memory data) internal virtual override {
         _mint(to, id);
 
         require(
-            to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(
-                    msg.sender,
-                    address(0),
-                    id,
-                    data
-                ) ==
-                ERC721TokenReceiver.onERC721Received.selector,
+            to.code.length == 0
+                || ERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), id, data)
+                    == ERC721TokenReceiver.onERC721Received.selector,
             "UNSAFE_RECIPIENT"
         );
     }
@@ -194,9 +146,7 @@ abstract contract CheckpointedERC721 is ERC721 {
         address owner = _ownerOf[id];
         require(owner != address(0), "NOT_MINTED");
         require(
-            msg.sender == owner ||
-                isApprovedForAll[owner][msg.sender] ||
-                msg.sender == getApproved[id],
+            msg.sender == owner || isApprovedForAll[owner][msg.sender] || msg.sender == getApproved[id],
             "NOT_AUTHORIZED"
         );
 
@@ -208,13 +158,7 @@ abstract contract CheckpointedERC721 is ERC721 {
         emit Transfer(owner, address(0), id);
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 
@@ -228,12 +172,7 @@ abstract contract CheckpointedERC721 is ERC721 {
         return pos != 0 ? supplyCheckpoints[pos - 1].amount : 0;
     }
 
-    function getPastTotalSupply(uint256 blockNumber)
-        public
-        view
-        virtual
-        returns (uint256)
-    {
+    function getPastTotalSupply(uint256 blockNumber) public view virtual returns (uint256) {
         require(block.number > blockNumber, "UNDETERMINED");
 
         uint32 pos = numSupplyCheckpoints;
@@ -258,12 +197,7 @@ abstract contract CheckpointedERC721 is ERC721 {
         return supplyCheckpoints[lower].amount;
     }
 
-    function getPastBalance(address account, uint256 blockNumber)
-        public
-        view
-        virtual
-        returns (uint256)
-    {
+    function getPastBalance(address account, uint256 blockNumber) public view virtual returns (uint256) {
         require(block.number > blockNumber, "UNDETERMINED");
 
         uint32 pos = numBalanceCheckpoints[account];
@@ -282,27 +216,19 @@ abstract contract CheckpointedERC721 is ERC721 {
             uint32 center = upper - (upper - lower) / 2;
             CheckpointsSlot memory cp = checkpoints[account][center];
             if (cp.balance.fromBlock == blockNumber) return cp.balance.amount;
-            cp.balance.fromBlock < blockNumber ? lower = center : upper =
-                center -
-                1;
+            cp.balance.fromBlock < blockNumber ? lower = center : upper = center - 1;
         }
 
         return checkpoints[account][lower].balance.amount;
     }
 
-    function _moveBalances(
-        address src,
-        address dst,
-        uint96 amount
-    ) internal {
+    function _moveBalances(address src, address dst, uint96 amount) internal {
         if (src != dst && amount > 0) {
             if (src != address(0)) {
                 uint96 srcOld;
                 uint32 srcPos = numBalanceCheckpoints[src];
 
-                srcOld = srcPos != 0
-                    ? checkpoints[src][srcPos - 1].balance.amount
-                    : 0;
+                srcOld = srcPos != 0 ? checkpoints[src][srcPos - 1].balance.amount : 0;
 
                 uint96 srcNew = srcOld - amount;
 
@@ -313,9 +239,7 @@ abstract contract CheckpointedERC721 is ERC721 {
                 uint32 dstPos = numBalanceCheckpoints[dst];
                 uint96 dstOld;
 
-                dstOld = dstPos != 0
-                    ? checkpoints[dst][dstPos - 1].balance.amount
-                    : 0;
+                dstOld = dstPos != 0 ? checkpoints[dst][dstPos - 1].balance.amount : 0;
 
                 uint96 dstNew = dstOld + amount;
 
@@ -324,9 +248,7 @@ abstract contract CheckpointedERC721 is ERC721 {
 
             if (dst == address(0)) {
                 uint96 supplyOld;
-                supplyOld = numSupplyCheckpoints != 0
-                    ? supplyCheckpoints[numSupplyCheckpoints - 1].amount
-                    : 0;
+                supplyOld = numSupplyCheckpoints != 0 ? supplyCheckpoints[numSupplyCheckpoints - 1].amount : 0;
 
                 uint96 newSupply = supplyOld - amount;
                 _writeSupplyCheckpoint(numSupplyCheckpoints, newSupply);
@@ -334,9 +256,7 @@ abstract contract CheckpointedERC721 is ERC721 {
 
             if (src == address(0)) {
                 uint96 supplyOld;
-                supplyOld = numSupplyCheckpoints != 0
-                    ? supplyCheckpoints[numSupplyCheckpoints - 1].amount
-                    : 0;
+                supplyOld = numSupplyCheckpoints != 0 ? supplyCheckpoints[numSupplyCheckpoints - 1].amount : 0;
 
                 uint96 newSupply = supplyOld + amount;
                 _writeSupplyCheckpoint(numSupplyCheckpoints, newSupply);
@@ -344,18 +264,11 @@ abstract contract CheckpointedERC721 is ERC721 {
         }
     }
 
-    function _transferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) internal {
+    function _transferFrom(address from, address to, uint256 id) internal {
         require(from == _ownerOf[id], "WRONG_FROM");
         require(to != address(0), "INVALID_RECIPIENT");
         require(
-            msg.sender == from ||
-                isApprovedForAll[from][msg.sender] ||
-                msg.sender == getApproved[id],
-            "NOT_AUTHORIZED"
+            msg.sender == from || isApprovedForAll[from][msg.sender] || msg.sender == getApproved[id], "NOT_AUTHORIZED"
         );
 
         _moveBalances(from, to, 1);
@@ -376,22 +289,12 @@ abstract contract CheckpointedERC721 is ERC721 {
         }
     }
 
-    function _writeBalanceCheckpoint(
-        address account,
-        uint32 pos,
-        uint96 newBalance
-    ) internal {
+    function _writeBalanceCheckpoint(address account, uint32 pos, uint96 newBalance) internal {
         uint32 blockNumber = block.number.safeCastTo32();
-        if (
-            pos > 0 &&
-            checkpoints[account][pos - 1].balance.fromBlock == blockNumber
-        ) {
+        if (pos > 0 && checkpoints[account][pos - 1].balance.fromBlock == blockNumber) {
             checkpoints[account][pos - 1].balance.amount = newBalance;
         } else {
-            checkpoints[account][pos].balance = Checkpoint(
-                blockNumber,
-                newBalance
-            );
+            checkpoints[account][pos].balance = Checkpoint(blockNumber, newBalance);
             numBalanceCheckpoints[account] = pos + 1;
         }
     }

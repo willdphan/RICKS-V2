@@ -4,17 +4,9 @@ pragma solidity ^0.8.0;
 import "src/CheckpointedERC721.sol";
 
 contract MockCheckpointed is CheckpointedERC721 {
-    constructor(string memory name, string memory symbol)
-        CheckpointedERC721(name, symbol)
-    {}
+    constructor(string memory name, string memory symbol) CheckpointedERC721(name, symbol) {}
 
-    function tokenURI(uint256)
-        public
-        pure
-        virtual
-        override
-        returns (string memory)
-    {}
+    function tokenURI(uint256) public pure virtual override returns (string memory) {}
 
     function mint(address to, uint256 tokenId) public virtual {
         _mint(to, tokenId);
@@ -28,11 +20,7 @@ contract MockCheckpointed is CheckpointedERC721 {
         _safeMint(to, tokenId);
     }
 
-    function safeMint(
-        address to,
-        uint256 tokenId,
-        bytes memory data
-    ) public virtual {
+    function safeMint(address to, uint256 tokenId, bytes memory data) public virtual {
         _safeMint(to, tokenId, data);
     }
 

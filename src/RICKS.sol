@@ -6,11 +6,10 @@ import "openzeppelin-contracts/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {LinearVRGDA} from "VRGDAs/LinearVRGDA.sol";
 import "src/interfaces/IWETH.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
-import {CheckpointEscrow} from 'src/CheckpointEscrow.sol';
+import {CheckpointEscrow} from "src/CheckpointEscrow.sol";
 import {toDaysWadUnsafe} from "solmate/utils/SignedWadMath.sol";
 
 contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
-
     /// ---------------------------
     /// -------- Addresses --------
     /// ---------------------------
@@ -44,16 +43,21 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
     address payable public winner;
 
     /// @notice possible states for the auction
-    enum AuctionState {empty, inactive, active, finalized}
+    enum AuctionState {
+        empty,
+        inactive,
+        active,
+        finalized
+    }
 
-    /// @notice auction's current state 
+    /// @notice auction's current state
     AuctionState public auctionState;
 
     /// @notice number of totalSold
     /// used for the number of tokens sold so far
     /// starts at 0
     uint256 public totalSold;
-    
+
     /// -------------------------------------
     /// -------- BUYOUT INFORMATION ---------
     /// -------------------------------------
@@ -67,7 +71,7 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
 
     address public buyoutBidder;
 
-    mapping(address => uint) public buyoutBids;
+    mapping(address => uint256) public buyoutBids;
 
     /// ------------------------
     /// -------- EVENTS --------
@@ -77,43 +81,43 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
     event Depositor(address indexed initiatior);
 
     /// @notice An event emitted when a VRGDA auction starts
-    event Start(address indexed buyer, uint price);
+    event Start(address indexed buyer, uint256 price);
 
     /// @notice An event emitted when a VRGDA auction is won
-    event Won(address indexed buyer, uint price);
+    event Won(address indexed buyer, uint256 price);
 
     /// @notice An event emitted when a buyout has started
-    event BuyoutStart(address indexed buyer, uint price);
+    event BuyoutStart(address indexed buyer, uint256 price);
 
     /// @notice An event emitted when a buyout is won
-    event BuyoutWon(address indexed buyer, uint price);
+    event BuyoutWon(address indexed buyer, uint256 price);
 
     /// @notice An event emitted when a buyout has new bid
-    event BuyoutBid(address indexed buyer, uint price);
-
+    event BuyoutBid(address indexed buyer, uint256 price);
 
     // VRGDA initialized at the constructor
-    // RICKS token 
+    // RICKS token
     // auction state empty
     // staking pool initialized
-    constructor(string memory _name
-               ,string memory _symbol
-               // address of ERC1155 to be fractionalized
-               ,address _token
-               // The ID of the ERC1155 token being fractionalized.
-               ,uint256 _id
-                // target price
-               ,int256 _targetPrice
-                // percent price decays per unit of time with no sales, scaled by 1e18
-               ,int256 _priceDecay
-                // per unit of time, scaled by 1e18
-               ,int256 _perUnitTime
-     ) ERC721(_name, _symbol) 
-    // set VRGDA parameters
-     LinearVRGDA(
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        // address of ERC1155 to be fractionalized
+        address _token,
+        // The ID of the ERC1155 token being fractionalized.
+        uint256 _id,
+        // target price
+        int256 _targetPrice,
+        // percent price decays per unit of time with no sales, scaled by 1e18
+        int256 _priceDecay,
+        // per unit of time, scaled by 1e18
+        int256 _perUnitTime
+    )
+        ERC721(_name, _symbol)
+        // set VRGDA parameters
         // params could be hardcoded
-        _targetPrice, _priceDecay, _perUnitTime) {
-
+        LinearVRGDA(_targetPrice, _priceDecay, _perUnitTime)
+    {
         token = _token;
         id = _id;
 
@@ -137,7 +141,7 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
         // require that the contract holds the NFT
         require(ERC721(token).ownerOf(id) == address(this), "The contract does not hold the NFT");
 
-        // changes the auctionState to inactive, 
+        // changes the auctionState to inactive,
         // indicating that the contract is now ready for the start of the auction.
         auctionState = AuctionState.inactive;
 
@@ -161,9 +165,7 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
 
         // calculate the starting price based on the VRGDA pricing logic
         currentPrice = getVRGDAPrice(
-            toDaysWadUnsafe(
-                block.timestamp - auctionStartTime
-            ), 
+            toDaysWadUnsafe(block.timestamp - auctionStartTime),
             // current number sold
             totalSold
         );
@@ -215,7 +217,6 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
         // requirements can be hardcoded and changed
         require((balanceOf(msg.sender) >= (50 * totalSold) / 100), "need 95% of total RICKS to start buyout");
 
-
         // set VRGDA auction state
         auctionState = AuctionState.finalized;
 
@@ -228,14 +229,14 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
         // set auction end time to 7 days from now - can be changed
         buyoutEndTime = block.timestamp + 7 days;
 
-         // if msg.sender does not = 0, then emit buyout start event
+        // if msg.sender does not = 0, then emit buyout start event
         if (msg.sender != address(0)) {
-         emit BuyoutStart(msg.sender, buyoutPrice);
+            emit BuyoutStart(msg.sender, buyoutPrice);
         }
     }
 
     // bid on the buyout of the NFT/english auction
-    function buyoutBid () external payable {
+    function buyoutBid() external payable {
         require(block.timestamp < buyoutEndTime, "buyout has ended");
         require(msg.value > buyoutPrice, "bid must be higher than current bid");
 
@@ -254,7 +255,7 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
     }
 
     // user can end the buyout once time has expired
-    function buyoutEnd () external {
+    function buyoutEnd() external {
         // require buyout to have ended
         require(block.timestamp >= buyoutEndTime, "buyout is still active");
         require(auctionState == AuctionState.finalized, "buyout not started");
@@ -275,12 +276,10 @@ contract RICKS is ERC721, ERC721Holder, LinearVRGDA {
     }
 
     function withdraw() external {
-        uint bidAmount =  buyoutBids[msg.sender];
+        uint256 bidAmount = buyoutBids[msg.sender];
         // reset bid to 0 for the user
         buyoutBids[msg.sender] = 0;
         // refund the user's ETH
         SafeTransferLib.safeTransferETH(msg.sender, bidAmount);
     }
-
 }
-

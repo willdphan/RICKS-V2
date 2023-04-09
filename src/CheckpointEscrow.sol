@@ -5,6 +5,7 @@ import {CheckpointedERC721, ERC721} from "src/CheckpointedERC721.sol";
 
 contract CheckpointEscrow {
     address immutable token;
+
     event Deposited(uint256 indexed blockNumber, uint256 weiAmount);
     event Withdrawal(uint256 indexed blockNumber, uint256 weiAmount);
 
@@ -16,18 +17,9 @@ contract CheckpointEscrow {
         token = _token;
     }
 
-    function pendingFor(uint32 blockNumber, address payee)
-        public
-        view
-        returns (uint256)
-    {
-        uint256 balance = CheckpointedERC721(token).getPastBalance(
-            payee,
-            blockNumber
-        );
-        uint256 supply = CheckpointedERC721(token).getPastTotalSupply(
-            blockNumber
-        );
+    function pendingFor(uint32 blockNumber, address payee) public view returns (uint256) {
+        uint256 balance = CheckpointedERC721(token).getPastBalance(payee, blockNumber);
+        uint256 supply = CheckpointedERC721(token).getPastTotalSupply(blockNumber);
         uint256 escrowedAmount = _deposits[blockNumber];
 
         require(!_isClaimed[blockNumber], "already claimed");
